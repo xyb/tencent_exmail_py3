@@ -1,0 +1,6 @@
+requests>=2.9.1
+rsa
+argparse
+pyopenssl 
+ndg-httpsclient 
+pyasn1
