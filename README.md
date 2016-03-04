@@ -9,11 +9,11 @@ pip install -r requirements.txt
 ```
 # 运行
 ```
-python get_tencent_exmail_contacts.py -u name@domain.com -p passw0rd'
+python get_tencent_exmail_contacts.py -u name@domain.com -p passw0rd
 ```
 更多参数，运行 -h 查看
 ```
-python get_tencent_exmail_contacts.py -h'
+python get_tencent_exmail_contacts.py -h
 ```
 
 
