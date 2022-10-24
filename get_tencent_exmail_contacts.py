@@ -5,6 +5,7 @@
 # @Last Modified by:   blinking.yan
 # @Last Modified time: 2016-03-03 22:45:18
 # @Description: 获取腾讯企业邮箱通讯录
+
 import requests
 import re
 import rsa
@@ -12,16 +13,14 @@ import sys
 import base64
 import time
 import argparse
-reload(sys)
 
-sys.setdefaultencoding('utf8')
 
 
 # 打印部门人员信息
 def print_tree(id, department_infos, level, staff_infors, f):
     prefix = '----' * level
     text = prefix + department_infos[id]['name'] + prefix
-    print text
+    
     f.write(text + '\n')
     for key, value in department_infos.items():
         if value['pid'] == id:
@@ -31,7 +30,7 @@ def print_tree(id, department_infos, level, staff_infors, f):
     for staff in staff_infors:
         if staff['pid'] == id:
             text = prefix + staff['name'] + '  ' + staff['alias']
-            print text
+            print(text)
             f.write(text + '\n')
 
 
@@ -55,7 +54,7 @@ def get_ts(content):
 def get_p(public_key, password, ts):
     public_key = rsa.PublicKey(int(public_key, 16), 65537)
     res_tmp = rsa.encrypt(
-        '{password}\n{ts}\n'.format(password=password, ts=ts), public_key)
+        str.encode('{password}\n{ts}\n'.format(password=password, ts=ts)),public_key)
     return base64.b64encode(res_tmp)
 
 
@@ -93,7 +92,7 @@ if __name__ == "__main__":
                'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4',
                }
     resp = session.get('https://exmail.qq.com/login', headers=headers)
-    content = resp.content
+    content = resp.text
 
     public_key = get_public_key(content)
 
@@ -144,12 +143,12 @@ if __name__ == "__main__":
 
     regexp = r'sid=(.*?)"'
 
-    sid = re.findall(regexp, resp.content)[0]
+    sid = re.findall(regexp, resp.text)[0]
     url = 'http://exmail.qq.com/cgi-bin/laddr_biz?action=show_party_list&sid={sid}&t=contact&view=biz'
     resp = session.get(url.format(sid=sid))
 
     text = resp.text
-    regexp = r'{id:"(\S*?)", pid:"(\S*?)", name:"(\S*?)", order:"(\S*?)"}'
+    regexp = r'{id:"(\S*?)", pid:"(\S*?)", name:"(\S*?)", order:"(\S*?)".*?}'
     results = re.findall(regexp, text)
     department_ids = []
     department_infor = dict()
@@ -174,7 +173,7 @@ if __name__ == "__main__":
 
         for item in results:
             all_emails.append(item[3])
-            print item[3]
+            print(item[3])
             staff = dict(uin=item[0], pid=item[1], name=item[2], alias=item[3], sex=item[4], pos=item[
                          5], tel=item[6], birth=item[7], slave_alias=item[8], department=item[9], mobile=item[10])
             staff_infors.append(staff)
