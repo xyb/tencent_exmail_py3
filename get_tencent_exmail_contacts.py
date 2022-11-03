@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# @Author: blinking.yan
-# @Date:   2016-03-03 21:56:26
-# @Last Modified by:   blinking.yan
-# @Last Modified time: 2016-03-03 22:45:18
-# @Description: 获取腾讯企业邮箱通讯录
 
 import requests
 import re
@@ -20,7 +14,7 @@ import argparse
 def print_tree(id, department_infos, level, staff_infors, f):
     prefix = '----' * level
     text = prefix + department_infos[id]['name'] + prefix
-    
+
     f.write(text + '\n')
     for key, value in department_infos.items():
         if value['pid'] == id:
@@ -30,7 +24,7 @@ def print_tree(id, department_infos, level, staff_infors, f):
     for staff in staff_infors:
         if staff['pid'] == id:
             text = prefix + staff['name'] + '  ' + staff['alias']
-            print(text)
+            print(text, flush=True)
             f.write(text + '\n')
 
 
@@ -160,26 +154,49 @@ if __name__ == "__main__":
         if item[1] == 0 or item[1] == '0':
             root_department = department
 
-    regexp = r'{uin:"(\S*?)",pid:"(\S*?)",name:"(\S*?)",alias:"(\S*?)",sex:"(\S*?)",pos:"(\S*?)",tel:"(\S*?)",birth:"(\S*?)",slave_alias:"(\S*?)",department:"(\S*?)",mobile:"(\S*?)"}'
+    regexp = r'{uin:"(\S*?)",pid:"(\S*?)",name:"(\S*?)",alias:"(\S*?)",sex:"(\S*?)",pos:"(\S*?)",tel:"(\S*?)",birth:"(\S*?)",slave_alias:"(\S*?)",department:"(\S*?)",mobile:"(\S*?)",newvip:"(\S*?)"}'
 
     all_emails = []
     staff_infors = []
-    for department_id in department_ids:
-        url = 'http://exmail.qq.com/cgi-bin/laddr_biz?t=memtree&limit={limit}&partyid={partyid}&action=show_party&sid={sid}'
-        resp = session.get(
-            url.format(limit=limit, sid=sid, partyid=department_id))
-        text = resp.text
-        results = re.findall(regexp, text)
+    import csv
+    with open('contacts.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        for department_id in department_ids:
+            url = 'http://exmail.qq.com/cgi-bin/laddr_biz?t=memtree&limit={limit}&partyid={partyid}&action=show_party&sid={sid}'
+            resp = session.get(
+                url.format(limit=limit, sid=sid, partyid=department_id))
+            text = resp.text
+            results = re.findall(regexp, text)
 
-        for item in results:
-            all_emails.append(item[3])
-            print(item[3])
-            staff = dict(uin=item[0], pid=item[1], name=item[2], alias=item[3], sex=item[4], pos=item[
-                         5], tel=item[6], birth=item[7], slave_alias=item[8], department=item[9], mobile=item[10])
-            staff_infors.append(staff)
+            def normal(s):
+                return s.replace('&nbsp;', '').replace('&#xA', '').replace(';', '')
+            for item in results:
+                item = list(normal(i) for i in item)
+                print(item, flush=True)
+                (uin, pid, name, email, sex, pos, tel, birth, slave_alias,
+                 department, mobile, vip) = item
+                all_emails.append(email)
+                if sex == '2':
+                    sex = '女'
+                else:
+                    sex = '男'
+                #print('.', flush=True, end='')
+                writer.writerow([email, name, sex, mobile, birth, pos,
+                                 department, slave_alias, tel, uin, pid, vip])
+                staff = dict(uin=uin, pid=pid, name=name, alias=email, sex=sex,
+                             pos=pos, tel=tel, birth=birth,
+                             slave_alias=slave_alias, department=department,
+                             mobile=mobile)
+                staff_infors.append(staff)
+
+    lines = open('contacts.csv').readlines()
+    lines.sort()
+    open('contacts.csv', 'w').write(
+        ''.join(['email,name,sex,mobile,birth,pos,department,slave_alias,tel,uin,pid,vip\n'] + lines))
+    # TODO 去重
 
     with open(emailfile, 'w') as f:
-        for item in all_emails:
+        for item in sorted(all_emails):
             f.write(item + '\n')
 
     with open(departfile, 'w') as f:
